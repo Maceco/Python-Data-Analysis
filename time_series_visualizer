@@ -1,0 +1,100 @@
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.ticker import MultipleLocator
+import pandas as pd
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
+import calendar
+import seaborn as sns
+
+# Import data (Make sure to parse dates. Consider setting index column to 'date'.)
+df = pd.read_csv('fcc-forum-pageviews.csv')
+df.set_index('date')
+# Clean data
+df = df[(df['value'] >= df['value'].quantile(0.025)) & (df['value'] <= df['value'].quantile(0.975))]
+
+def draw_line_plot():
+     
+    # date in datetime format
+    df_line = df.copy()
+    df_line['date'] = pd.to_datetime(df_line['date'])
+
+    # lineplot
+    fig, ax = plt.subplots(figsize=(12, 12))
+    ax.plot(df_line['date'], df_line['value'], color='red')
+    ax.set(xlabel="Date", ylabel="Page Views",title="Daily freeCodeCamp Forum Page Views 5/2016-12/2019")
+    ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1,7)))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+
+    fig = fig.figure
+    
+    # Save image and return fig (don't change this part)
+    fig.savefig('line_plot.png')
+    return fig
+
+
+def draw_bar_plot():
+    
+    # Copy and modify data for monthly bar plot
+    df_bar = df.copy()
+    df_bar.reset_index()
+    df_bar[['Years','Months', 'day']] = df_bar['date'].str.split('-',expand=True)
+    df_bar = df_bar.drop(columns=['date', 'day'])
+    df_bar = df_bar.groupby(['Months', 'Years']).mean().sort_values(by=['Years', 'Months']).reset_index()
+    df_bar['Months'] = df_bar['Months'].apply(lambda x: calendar.month_name[int(x)])
+    
+    # Draw bar plot 
+    sns.set(font_scale=0.7)
+    sns.set_style("white")
+    hue_order = df_bar[(df_bar['Years'] == '2017')]['Months'].tolist()
+    barplot = sns.catplot(data=df_bar, x='Years', y='value', hue='Months', kind='bar', hue_order=hue_order, palette='husl')
+    barplot.set_ylabels('Average Page Views')
+    sns.move_legend(barplot, loc='upper left', bbox_to_anchor=(0.15, 0.45, 0.5, 0.5))
+    plt.xticks(rotation=90)
+
+    fig = barplot.figure
+    # Save image and return fig (don't change this part)
+    fig.savefig('bar_plot.png')
+    return fig
+
+def draw_box_plot():
+    # Prepare data for box plots (this part is done!)
+    df_box = df.copy()
+    df_box.reset_index()
+    df_box[['Years','Month', 'day']] = df_box['date'].str.split('-',expand=True)
+    df_box = df_box.drop(columns=['date'])
+    # df_box.reset_index(inplace=True)
+    df_box['Month'] = df_box['Month'].apply(lambda x: calendar.month_abbr[int(x)])
+    # df_box['year'] = [d.year for d in df_box.date]
+    # df_box['month'] = [d.strftime('%b') for d in df_box.date]
+
+    # Draw box plots (using Seaborn)
+    sns.set(font_scale=0.6)
+    sns.set_style("white")
+    fig, axes = plt.subplots(1, 2, sharey=False)
+    sns.boxplot(ax=axes[0], data=df_box, x='Years', y='value', palette='husl', hue='Years', legend=False)
+    axes[0].set(
+    axisbelow=True,  # Hide the grid behind plot objects
+    title='Year-wise Box Plot (Trend)',
+    xlabel='Year',
+    ylabel='Page Views',
+    )
+    axes[0].set_ylim(0, 200000)
+    axes[0].yaxis.set_major_locator(MultipleLocator(20000))
+    
+    order = df_box[(df_box['Years'] == '2017')]['Month'].unique().tolist()
+    sns.boxplot(ax=axes[1], data=df_box, x='Month', y='value', palette='husl', hue='Month', legend=False, native_scale=True, order=order)
+    axes[1].set(
+    axisbelow=True,  # Hide the grid behind plot objects
+    title='Month-wise Box Plot (Seasonality)',
+    xlabel='Month',
+    ylabel='Page Views',
+    )
+    axes[1].set_ylim(0, 200000)
+    axes[1].yaxis.set_major_locator(MultipleLocator(20000))
+
+    fig.tight_layout()
+    
+    # Save image and return fig (don't change this part)
+    fig.savefig('box_plot.png')
+    return fig
