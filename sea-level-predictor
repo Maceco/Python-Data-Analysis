@@ -1,0 +1,30 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.stats import linregress
+
+def draw_plot():
+    # Read data from file
+    df = pd.read_csv("epa-sea-level.csv")
+    # Create scatter plot
+    fig, ax = plt.subplots(1, 1)
+    plt.scatter(df['Year'], df['CSIRO Adjusted Sea Level'])
+    
+    # Create first line of best fit
+    res1 = linregress(df['Year'], df['CSIRO Adjusted Sea Level'])
+    # plot regression fit
+    plt.plot(range(1880, 2051, 1), res1.intercept + res1.slope*range(1880, 2051, 1), 'r')
+    # Create second line of best fit, removing years till 2000
+    df2 = df[(df['Year'] >= 2000)]
+    res2 = linregress(df2['Year'], df2['CSIRO Adjusted Sea Level'])
+    plt.plot(range(2000, 2051, 1), res2.intercept + res2.slope*range(2000, 2051, 1), 'b')
+    # Add labels and title
+    ax.set(
+    axisbelow=True,  # Hide the grid behind plot objects
+    title='Rise in Sea Level',
+    xlabel='Year',
+    ylabel='Sea Level (inches)',
+    )
+    
+    # Save plot and return data for testing (DO NOT MODIFY)
+    plt.savefig('sea_level_plot.png')
+    return plt.gca()
